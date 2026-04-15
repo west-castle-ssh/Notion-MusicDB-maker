@@ -165,6 +165,8 @@ def main():
         notion_id_col_idx = header.index(NOTION_ID_COL)
     else:
         notion_id_col_idx = len(header)
+        # 시트 컬럼 수 확장 후 헤더 추가
+        sheet.add_cols(1)
         sheet.update_cell(1, notion_id_col_idx + 1, NOTION_ID_COL)
         header.append(NOTION_ID_COL)
         log.info(f"'{NOTION_ID_COL}' 컬럼 추가 (열 {notion_id_col_idx + 1})")
