@@ -29,19 +29,18 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Google Sheets 컬럼명 → (Notion 프로퍼티명, 타입)
 COLUMN_MAP = {
-    "아티스트":                     ("아티스트",                          "multi_select"),
-    "앨범명":                       ("앨범명",                            "title"),
-    "유형":                         ("유형",                              "select"),
-    "장르":                         ("장르",                              "multi_select"),
-    "발매일자":                     ("발매일자",                          "date"),
-    "유통사":                       ("유통사",                            "multi_select"),
-    "기획사":                       ("기획사",                            "multi_select"),
-    "인트로가 내 귀를 사로잡았는가?": ("인트로가 좋았는가?",               "checkbox"),
-    "인트로 후~1분이 괜찮은가?":     ("인트로-1분 구간이 좋았는가?",       "checkbox"),
-    "끝까지 좋았는가?":              ("곡의 끝까지 좋았는가?",             "checkbox"),
-    "좋았지만 안타깝게도 못들어감":  ("곡이 좋았지만 아쉽게도 들지 못한 곡", "checkbox"),
-    "신규 장르 인가?":               ("신규 장르인가?",                    "checkbox"),
+    "아티스트":       ("아티스트",     "multi_select"),
+    "앨범명":         ("앨범명",       "title"),
+    "유형":           ("유형",         "select"),
+    "장르":           ("장르",         "multi_select"),
+    "발매일자":       ("발매일자",     "date"),
+    "유통사":         ("유통사",       "multi_select"),
+    "기획사":         ("기획사",       "multi_select"),
+    "신규 장르 인가?": ("신규 장르인가?", "checkbox"),  # L열
 }
+
+# Notion 등록 필터: J열 OR K열 중 하나라도 TRUE인 행만 등록
+FILTER_COLS = ("끝까지 좋았는가?", "좋았지만 안타깝게도 못들어감")
 
 NOTION_ID_COL = "notion_id"  # 동기화 추적용 컬럼 (시트에 자동 추가)
 
@@ -187,6 +186,10 @@ def main():
         album_title = row.get("앨범명", "").strip()
         if not album_title:
             continue  # 빈 행 스킵
+
+        # J열 OR K열 체크 여부 확인 — 둘 다 False면 스킵
+        if not any(to_checkbox(row.get(col, "")) for col in FILTER_COLS):
+            continue
 
         notion_id = row.get(NOTION_ID_COL, "").strip()
 
