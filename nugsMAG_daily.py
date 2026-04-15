@@ -74,6 +74,11 @@ def normalize_date(value: str):
             return datetime.strptime(value.strip(), fmt).strftime("%Y-%m-%d")
         except ValueError:
             continue
+    # "2026. 4. 14" 형식 대응 (한국 구글 시트 기본 날짜 형식)
+    m = re.match(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', value.strip())
+    if m:
+        year, month, day = m.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}"
     return None
 
 def build_notion_properties(row: dict) -> dict:
