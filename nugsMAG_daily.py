@@ -7,6 +7,7 @@ NUGS MAG 신보 자동화 파이프라인
 - 장르 변경 감지 → Notion 자동 업데이트
 """
 
+import re
 import sys
 import os
 import logging
@@ -54,6 +55,12 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ── 값 변환 헬퍼 ──────────────────────────────────────────────────────────────
+
+NOTION_ID_RE = re.compile(r'^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$', re.IGNORECASE)
+
+def is_valid_notion_id(value: str) -> bool:
+    """Notion page ID 형식(UUID) 여부 확인"""
+    return bool(NOTION_ID_RE.match(value.strip()))
 
 def to_multi_select(value: str) -> list:
     return [{"name": v.strip()} for v in value.split(",") if v.strip()]
@@ -193,7 +200,7 @@ def main():
 
         notion_id = row.get(NOTION_ID_COL, "").strip()
 
-        if not notion_id:
+        if not notion_id or not is_valid_notion_id(notion_id):
             # 신규 행 → Notion 등록 (notion_id는 나중에 일괄 기록)
             try:
                 time.sleep(0.35)  # Notion API 초당 3건 제한 대응
