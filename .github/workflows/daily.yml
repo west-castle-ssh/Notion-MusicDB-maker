@@ -2,8 +2,8 @@ name: NUGS MAG 신보 자동 수집
 
 on:
   schedule:
-    # 매일 오후 10시 KST = UTC 13:00
-    - cron: '0 13 * * *'
+    # 매주 화요일 오후 10시 KST = UTC 13:00
+    - cron: '0 13 * * 2'
   workflow_dispatch:   # 수동 실행 버튼 (테스트용)
 
 jobs:
