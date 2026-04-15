@@ -11,6 +11,7 @@ import sys
 import os
 import logging
 import json
+import time
 from datetime import datetime, date
 
 import gspread
@@ -171,9 +172,10 @@ def main():
         header.append(NOTION_ID_COL)
         log.info(f"'{NOTION_ID_COL}' 컬럼 추가 (열 {notion_id_col_idx + 1})")
 
-    notion        = get_notion_client()
-    new_count     = 0
-    updated_count = 0
+    notion          = get_notion_client()
+    new_count       = 0
+    updated_count   = 0
+    pending_updates = []  # (row_idx, page_id) — 마지막에 일괄 기록
 
     for row_idx, row_values in enumerate(data_rows, start=2):
         # 행을 딕셔너리로 변환 (컬럼 수 부족 시 빈 문자열로 채움)
@@ -189,10 +191,11 @@ def main():
         notion_id = row.get(NOTION_ID_COL, "").strip()
 
         if not notion_id:
-            # 신규 행 → Notion 등록
+            # 신규 행 → Notion 등록 (notion_id는 나중에 일괄 기록)
             try:
+                time.sleep(0.35)  # Notion API 초당 3건 제한 대응
                 page_id = create_notion_page(notion, row)
-                sheet.update_cell(row_idx, notion_id_col_idx + 1, page_id)
+                pending_updates.append((row_idx, page_id))
                 log.info(f"  [신규] {album_title[:40]}")
                 new_count += 1
             except Exception as e:
@@ -204,10 +207,12 @@ def main():
             if not sheet_genre:
                 continue
             try:
+                time.sleep(0.35)  # Notion API 초당 3건 제한 대응
                 notion_genres = get_notion_genres(notion, notion_id)
                 sheet_genres  = {v.strip() for v in sheet_genre.split(",") if v.strip()}
 
                 if sheet_genres != notion_genres:
+                    time.sleep(0.35)
                     update_notion_genre(notion, notion_id, sheet_genre)
                     log.info(
                         f"  [장르 수정] {album_title[:30]} | "
@@ -216,6 +221,19 @@ def main():
                     updated_count += 1
             except Exception as e:
                 log.error(f"  [장르 확인 실패] {album_title}: {e}")
+
+    # notion_id 일괄 기록 (Google Sheets API 호출 최소화)
+    if pending_updates:
+        log.info(f"notion_id {len(pending_updates)}개 시트에 일괄 기록 중...")
+        col_letter = chr(ord('A') + notion_id_col_idx)
+        sheet.batch_update([
+            {
+                "range": f"{col_letter}{row_idx}",
+                "values": [[page_id]],
+            }
+            for row_idx, page_id in pending_updates
+        ])
+        log.info("일괄 기록 완료")
 
     log.info(f"완료 — 신규 {new_count}개 등록 / 장르 {updated_count}개 업데이트")
 
