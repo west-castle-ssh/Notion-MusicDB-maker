@@ -1,0 +1,31 @@
+name: NUGS MAG 신보 자동 수집
+
+on:
+  schedule:
+    # 매일 오후 10시 KST = UTC 13:00
+    - cron: '0 13 * * *'
+  workflow_dispatch:   # 수동 실행 버튼 (테스트용)
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: Sheets → Notion 동기화 실행
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: python nugsMAG_daily.py
